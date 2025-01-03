@@ -28,7 +28,6 @@ export class TrackEffects {
     )
   );
   
-
   // Effect for adding a track
   addTrack$ = createEffect(() =>
     this.actions$.pipe(
@@ -49,7 +48,27 @@ export class TrackEffects {
       })
     )
   );
-  
+
+  // Effect for editing a track
+  editTrack$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(TrackActions.editTrack),
+      mergeMap(({ track }) => {
+        console.log('Action received to edit track:', track);
+        return this.indexedDbService.updateTrack(track).pipe(
+          mergeMap(() => this.indexedDbService.getAllTracks()),
+          map((tracks) => {
+            console.log('Tracks after editing:', tracks);
+            return TrackActions.loadTracksSuccess({ tracks });
+          }),
+          catchError((error) => {
+            console.error('Error in editTrack effect:', error);
+            return of(TrackActions.trackError({ error }));
+          })
+        );
+      })
+    )
+  );
   
   // Effect for deleting a track
   deleteTrack$ = createEffect(() =>

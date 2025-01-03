@@ -28,6 +28,21 @@ export const addTrackFailure = createAction(
   props<{ error: string }>()
 );
 
+export const editTrack = createAction(
+  '[Track] Edit Track',
+  props<{ track: Track }>()
+);
+
+export const editTrackSuccess = createAction(
+  '[Track] Edit Track Success',
+  props<{ track: Track }>()
+);
+
+export const editTrackFailure = createAction(
+  '[Track] Edit Track Failure',
+  props<{ error: string }>()
+);
+
 export const deleteTrack = createAction(
   '[Track] Delete Track',
   props<{ trackId: number }>()

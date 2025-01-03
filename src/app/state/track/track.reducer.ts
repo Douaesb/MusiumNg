@@ -1,5 +1,5 @@
 import { createReducer, on } from '@ngrx/store';
-import { loadTracksSuccess, addTrackSuccess, deleteTrackSuccess, trackError } from './track.actions';
+import { loadTracksSuccess, addTrackSuccess, deleteTrackSuccess, trackError, editTrackSuccess } from './track.actions';
 import { Track } from './track.models';
 
 export interface TrackState {
@@ -32,5 +32,10 @@ export const trackReducer = createReducer(
   on(trackError, (state, { error }) => ({
     ...state,
     error,  // Store error in state
+  })),
+  on(editTrackSuccess, (state, { track }) => ({
+    ...state,
+    tracks: state.tracks.map(t => t.id === track.id ? track : t),
+    error: null,  // Reset error on successful edit
   }))
 );

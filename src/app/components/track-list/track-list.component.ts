@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { Track } from '../../models/track.model';
@@ -6,8 +6,6 @@ import * as TrackActions from '../../state/track/track.actions';
 import { TrackState } from '../../state/track/track.reducer';
 import { AsyncPipe, NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { provideStore } from '@ngrx/store';
-import { provideEffects } from '@ngrx/effects';
 
 @Component({
   selector: 'app-track-list',
@@ -25,11 +23,11 @@ export class TrackListComponent implements OnInit {
   tracks$: Observable<Track[]>;
   error$: Observable<string | null>;
   newTrack: Track = { id: 0, title: '', artist: '', category: '', duration: 0, createdAt: new Date() };
+  selectedTrack: Track | null = null; // Holds the track being edited
 
   constructor(private store: Store<{ track: TrackState }>) {
     this.tracks$ = this.store.select(state => state.track.tracks);
     this.error$ = this.store.select(state => state.track.error);
-    
   }
 
   ngOnInit(): void {
@@ -42,6 +40,20 @@ export class TrackListComponent implements OnInit {
       this.newTrack.id = this.generateUniqueId();
       this.store.dispatch(TrackActions.addTrack({ track: this.newTrack }));
       this.resetForm();
+    }
+  }
+
+  selectTrack(track: Track): void {
+    console.log('Selected Track:', track);
+    this.selectedTrack = { ...track };
+    console.log('Selected Track 2 :', this.selectedTrack);
+
+  }
+
+  editTrack(updatedTrack: Track): void {
+    if (updatedTrack.id && updatedTrack.title && updatedTrack.artist && updatedTrack.category) {
+      this.store.dispatch(TrackActions.editTrack({ track: updatedTrack }));
+      this.selectedTrack = null;
     }
   }
 

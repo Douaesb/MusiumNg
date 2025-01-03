@@ -1,47 +1,345 @@
-<div class="track-list">
-    <h1>Track List</h1>
-  
-    <!-- Form to add a new track -->
-    <form (ngSubmit)="addTrack()">
-      <div>
-        <label for="title">Title:</label>
-        <input type="text" id="title" [(ngModel)]="newTrack.title" name="title" required>
+
+<!-- Main modal -->
+<div
+  id="crud-modal"
+  #crudModal
+  tabindex="-1"
+  aria-hidden="true"
+  class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full"
+>
+  <div class="relative p-4 w-full max-w-md max-h-full">
+    <!-- Modal content -->
+    <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+      <!-- Modal header -->
+      <div
+        class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600"
+      >
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+          Create New Track
+        </h3>
+        <button
+          type="button"
+          class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
+          data-modal-toggle="crud-modal"
+        >
+          <svg
+            class="w-3 h-3"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 14 14"
+          >
+            <path
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+            />
+          </svg>
+          <span class="sr-only">Close modal</span>
+        </button>
       </div>
-  
-      <div>
-        <label for="artist">Artist:</label>
-        <input type="text" id="artist" [(ngModel)]="newTrack.artist" name="artist" required>
-      </div>
-  
-      <div>
-        <label for="category">Category:</label>
-        <input type="text" id="category" [(ngModel)]="newTrack.category" name="category" required>
-      </div>
-  
-      <div>
-        <label for="duration">Duration (seconds):</label>
-        <input type="number" id="duration" [(ngModel)]="newTrack.duration" name="duration" required>
-      </div>
-  
-      <button type="submit">Add Track</button>
-    </form>
-  
-    <div *ngIf="tracks$ | async as tracks; else noTracks">
-      <ul>
-        <li *ngFor="let track of tracks">
-          <h3>{{ track.title }}</h3>
-          <p>Artist: {{ track.artist }}</p>
-          <p>Category: {{ track.category }}</p>
-          <p>Duration: {{ track.duration }} minutes</p>
-          <button *ngIf="track.id !== undefined" (click)="deleteTrack(track.id)">Delete</button>
-        </li>
-      </ul>
+      <!-- Modal body -->
+      <form class="p-4 md:p-5" (ngSubmit)="addTrack()">
+        <div class="grid gap-4 mb-4 grid-cols-2">
+          <!-- Title -->
+          <div class="col-span-2">
+            <label
+              for="title"
+              class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >Track Title</label
+            >
+            <input
+              type="text"
+              id="title"
+              [(ngModel)]="newTrack.title"
+              name="title"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+              placeholder="Enter track title"
+              required
+            />
+          </div>
+          <!-- Artist -->
+          <div class="col-span-2 sm:col-span-1">
+            <label
+              for="artist"
+              class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >Artist</label
+            >
+            <input
+              type="text"
+              id="artist"
+              [(ngModel)]="newTrack.artist"
+              name="artist"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+              placeholder="Enter artist name"
+              required
+            />
+          </div>
+          <!-- Category -->
+          <div class="col-span-2 sm:col-span-1">
+            <label
+              for="category"
+              class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >Category</label
+            >
+            <select
+              id="category"
+              [(ngModel)]="newTrack.category"
+              name="category"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+              required
+            >
+              <option value="" disabled selected>Select category</option>
+              <option value="Pop">Pop</option>
+              <option value="Rock">Rock</option>
+              <option value="Jazz">Jazz</option>
+              <option value="Classical">Classical</option>
+            </select>
+          </div>
+          <!-- Duration -->
+          <div class="col-span-2">
+            <label
+              for="duration"
+              class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >Duration (seconds)</label
+            >
+            <input
+              type="number"
+              id="duration"
+              [(ngModel)]="newTrack.duration"
+              name="duration"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+              placeholder="Enter duration in seconds"
+              required
+            />
+          </div>
+        </div>
+        <button
+          type="submit"
+          data-modal-toggle="crud-modal"
+          class="bg-teal-600 hover:bg-teal-700 text-white py-2 px-4 rounded-lg transition duration-200"  >
+         
+          Add New Track
+        </button>
+      </form>
     </div>
-    
-    
-  
-    <ng-template #noTracks>
-      <p>No tracks available. Add a track to get started!</p>
-    </ng-template>
   </div>
-  
+</div>
+<!-- Update Modal -->
+<div *ngIf="selectedTrack" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+  <div class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+    <h3 class="text-2xl font-semibold mb-6 text-teal-600">Edit Track</h3>
+    <form (ngSubmit)="editTrack(selectedTrack)">
+      <div class="mb-5">
+        <label for="title" class="block text-sm font-medium text-teal-600">Title</label>
+        <input
+          id="title"
+          [(ngModel)]="selectedTrack.title"
+          name="title"
+          type="text"
+          class="mt-2 p-3 w-full border border-teal-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+          placeholder="Enter track title"
+          required
+        />
+      </div>
+
+      <div class="mb-5">
+        <label for="artist" class="block text-sm font-medium text-teal-600">Artist</label>
+        <input
+          id="artist"
+          [(ngModel)]="selectedTrack.artist"
+          name="artist"
+          type="text"
+          class="mt-2 p-3 w-full border border-teal-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+          placeholder="Enter artist name"
+          required
+        />
+      </div>
+
+      <div class="mb-5">
+        <label for="category" class="block text-sm font-medium text-teal-600">Category</label>
+        <input
+          id="category"
+          [(ngModel)]="selectedTrack.category"
+          name="category"
+          type="text"
+          class="mt-2 p-3 w-full border border-teal-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+          placeholder="Enter track category"
+          required
+        />
+      </div>
+
+      <div class="mb-5">
+        <label for="duration" class="block text-sm font-medium text-teal-600">Duration (minutes)</label>
+        <input
+          id="duration"
+          [(ngModel)]="selectedTrack.duration"
+          name="duration"
+          type="number"
+          min="0"
+          class="mt-2 p-3 w-full border border-teal-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+          placeholder="Enter duration in minutes"
+          required
+        />
+      </div>
+
+      <div class="flex justify-between items-center mt-6">
+        <button type="submit" class="bg-teal-600 hover:bg-teal-700 text-white py-2 px-4 rounded-lg transition duration-200">
+          Save Changes
+        </button>
+        <button type="button" (click)="selectedTrack = null" class="bg-gray-400 hover:bg-gray-500 text-white py-2 px-4 rounded-lg transition duration-200">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+<div class="min-h-screen bg-gradient-to-b from-teal-800 to-teal-700 text-white">
+    <!-- Top Section -->
+    <div class="p-4 space-y-6">
+        <!-- Header -->
+        <div class="flex items-center ">
+            <div class=" rounded-full">
+              <img class="w-16 h-16" src="../../../assets/musium_lg.png" alt="">
+            </div>
+            <div class="relative flex-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input type="text" placeholder="Search" class="border-2  border-teal-300 w-full bg-teal-900 rounded-full py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-teal-400">
+            </div>
+        </div>
+
+        <!-- Categories -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div class="bg-teal-900 border-2 border-teal-300 rounded-xl p-4 text-center hover:bg-opacity-80 transition-colors">Pop</div>
+            <div class="bg-teal-900 border-2 border-teal-300 rounded-xl p-4 text-center hover:bg-opacity-80 transition-colors">Rock</div>
+            <div class="bg-teal-900 border-2 border-teal-300 rounded-xl p-4 text-center hover:bg-opacity-80 transition-colors">Jazz</div>
+            <div class="bg-teal-900 border-2 border-teal-300 rounded-xl p-4 text-center hover:bg-opacity-80 transition-colors">Classical</div>
+            <div class="bg-teal-900 border-2 border-teal-300 rounded-xl p-4 text-center hover:bg-opacity-80 transition-colors">Piano</div>
+            <div class="bg-teal-900 border-2 border-teal-300 rounded-xl p-4 text-center hover:bg-opacity-80 transition-colors">Chaabi</div>
+        </div>
+    </div>
+    <button
+    data-modal-target="crud-modal"
+    data-modal-toggle="crud-modal"
+    class="block text-black  border border-teal-800 ml-24 bg-teal-300  focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+    type="button"
+  >
+    add track
+  </button>
+    <!-- Main Content -->
+    <div class="flex">
+        <!-- Sidebar -->
+        <div class="hidden sm:flex flex-col gap-6 bg-teal-900 p-4 rounded-r-xl">
+            <button class="p-2 hover:bg-teal-400 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </button>
+            <button class="p-2 hover:bg-teal-400 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+            </button>
+            <button class="p-2 hover:bg-teal-400 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.618 5.984A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016zM12 9v2m0 4h.01" />
+                </svg>
+            </button>
+            <button class="p-2 hover:bg-teal-400 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Playlist -->
+        <div class="flex-1 p-4 space-y-2" *ngIf="tracks$ | async as tracks; else noTracks">
+            <!-- Song Items -->
+            <div *ngFor="let track of tracks" class="flex items-center justify-between border border-teal-300 p-3 rounded-lg hover:bg-teal-900 group transition-colors">
+                <div  *ngIf="selectedTrack?.id !== track.id" class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-teal-400/20 rounded-lg"></div>
+                    <div>
+                        <div class="font-medium">{{ track.title }} | {{ track.category }}</div>
+
+                        <div class="text-sm text-gray-400">{{ track.artist }}</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-gray-400">{{ track.duration }} : 00</span>
+                    <button class="p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                        </svg>
+                    </button>
+                    <button (click)="selectTrack(track)" class=" text-white py-1 px-3 rounded-lg transition">
+                      <svg class="h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M21.2799 6.40005L11.7399 15.94C10.7899 16.89 7.96987 17.33 7.33987 16.7C6.70987 16.07 7.13987 13.25 8.08987 12.3L17.6399 2.75002C17.8754 2.49308 18.1605 2.28654 18.4781 2.14284C18.7956 1.99914 19.139 1.92124 19.4875 1.9139C19.8359 1.90657 20.1823 1.96991 20.5056 2.10012C20.8289 2.23033 21.1225 2.42473 21.3686 2.67153C21.6147 2.91833 21.8083 3.21243 21.9376 3.53609C22.0669 3.85976 22.1294 4.20626 22.1211 4.55471C22.1128 4.90316 22.0339 5.24635 21.8894 5.5635C21.7448 5.88065 21.5375 6.16524 21.2799 6.40005V6.40005Z" stroke="#0db7ba" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path> <path d="M11 4H6C4.93913 4 3.92178 4.42142 3.17163 5.17157C2.42149 5.92172 2 6.93913 2 8V18C2 19.0609 2.42149 20.0783 3.17163 20.8284C3.92178 21.5786 4.93913 22 6 22H17C19.21 22 20 20.2 20 18V13" stroke="#0db7ba" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>                    </button>
+                    <button *ngIf="track.id !== undefined" (click)="deleteTrack(track.id)" class="text-white py-1 px-3 rounded-lg transition">
+                      <svg class="h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M4 7H20" stroke="#0db7ba" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> <path d="M6 10L7.70141 19.3578C7.87432 20.3088 8.70258 21 9.66915 21H14.3308C15.2974 21 16.1257 20.3087 16.2986 19.3578L18 10" stroke="#0db7ba" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> <path d="M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5V7H9V5Z" stroke="#0db7ba" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>                    </button>
+                </div>
+                
+            </div>
+          
+          </div>
+<ng-template #noTracks>
+              <p class="text-teal-400 text-center">
+                No tracks available. Add a track to get started!
+              </p>
+            </ng-template>   
+    </div>
+
+    <!-- Player Controls -->
+    <div class="fixed bottom-0 left-0 right-0 bg-teal-900 p-4">
+        <div class="max-w-screen-xl mx-auto flex flex-col gap-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-teal-400/20 rounded-lg"></div>
+                    <div>
+                        <div class="font-medium">ElGrandeToto - 7elmet Ada</div>
+                        <div class="text-sm text-gray-400">ElGrandeToto</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button class="p-2 hover:bg-teal-400 rounded-lg transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                    </button>
+                    <button class="p-2 hover:bg-teal-400 rounded-lg transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <button class="p-2 bg-teal-400 hover:bg-teal-500 rounded-full transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        </svg>
+                    </button>
+                    <button class="p-2 hover:bg-teal-400 rounded-lg transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                    <button class="p-2 hover:bg-teal-400 rounded-lg transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="hidden md:flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    </svg>
+                    <input type="range" class="w-32" value="70" min="0" max="100">
+                </div>
+            </div>
+            <input type="range" class="w-full" value="30" min="0" max="100">
+        </div>
+    </div>

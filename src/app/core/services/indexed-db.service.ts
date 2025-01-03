@@ -110,6 +110,21 @@ export class IndexedDbService {
     );
   }
 
+  updateTrack(track: MusicStreamDB['tracks']['value']): Observable<number> {
+    return from(
+      (async () => {
+        await this.ensureDBInitialized();
+        if (track.description && track.description.length > 200) {
+          throw new Error('Description exceeds 200 characters');
+        }
+        if (!track.id) {
+          throw new Error('Track ID is required for editing');
+        }
+        return this.db.put('tracks', { ...track, createdAt: new Date() });
+      })()
+    );
+  }
+
 
   deleteTrack(trackId: number): Observable<void> {
     return from(this.db.delete('tracks', trackId));
