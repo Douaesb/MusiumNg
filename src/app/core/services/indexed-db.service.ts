@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import { Observable, from } from 'rxjs';
 
 interface MusicStreamDB extends DBSchema {
   audioFiles: {
-    key: number; 
+    key: number;
     value: {
       id?: number;
       fileName: string;
@@ -13,14 +14,14 @@ interface MusicStreamDB extends DBSchema {
       createdAt: Date;
     };
   };
-  metadata: {
+  tracks: {
     key: number;
     value: {
       id?: number;
       title: string;
       artist: string;
-      description?: string;
-      category: string;
+      description?: string; 
+      category: string; 
       duration: number; 
       createdAt: Date;
     };
@@ -36,69 +37,86 @@ export class IndexedDbService {
   constructor() {
     this.initDB();
   }
-
   private async initDB(): Promise<void> {
-    this.db = await openDB<MusicStreamDB>('MusicStreamDB', 1, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains('audioFiles')) {
-          db.createObjectStore('audioFiles', {
-            keyPath: 'id',
-            autoIncrement: true,
-          });
-        }
-        if (!db.objectStoreNames.contains('metadata')) {
-          db.createObjectStore('metadata', {
-            keyPath: 'id',
-            autoIncrement: true,
-          });
-        }
-      },
-    });
-    console.log('IndexedDB Initialized');
+    try {
+      this.db = await openDB<MusicStreamDB>('MusicStreamDB', 1, {
+        upgrade(db) {
+          if (!db.objectStoreNames.contains('audioFiles')) {
+            db.createObjectStore('audioFiles', { keyPath: 'id', autoIncrement: true });
+            console.log('audioFiles store created');
+          }
+          if (!db.objectStoreNames.contains('tracks')) {
+            db.createObjectStore('tracks', { keyPath: 'id', autoIncrement: true });
+            console.log('tracks store created');
+          }
+        },
+      });
+      console.log('IndexedDB Initialized');
+    } catch (error) {
+      console.error('Error initializing IndexedDB:', error);
+    }
   }
+  
 
-  async addAudioFile(file: Blob, fileName: string, fileType: string, fileSize: number): Promise<number> {
-    const createdAt = new Date();
-    return await this.db.add('audioFiles', {
-      fileBlob: file,
-      fileName,
-      fileType,
-      fileSize,
-      createdAt,
-    });
-  }
+  // Audio Files Methods
+  async addAudioFile(file: Blob, fileName: string, fileType: string, fileSize: number): Promise<number | null> {
+    if (fileSize > 15 * 1024 * 1024) {
+      console.error('File size exceeds 15MB limit');
+      return null;
+    }
+    if (!['audio/mp3', 'audio/wav', 'audio/ogg'].includes(fileType)) {
+      console.error('Unsupported file format');
+      return null;
+    }
 
-  async addMetadata(
-    title: string,
-    artist: string,
-    category: string,
-    duration: number,
-    description?: string
-  ): Promise<number> {
     const createdAt = new Date();
-    return await this.db.add('metadata', {
-      title,
-      artist,
-      category,
-      duration,
-      description,
-      createdAt,
-    });
+    return this.db.add('audioFiles', { fileBlob: file, fileName, fileType, fileSize, createdAt });
   }
 
   async getAllAudioFiles(): Promise<MusicStreamDB['audioFiles']['value'][]> {
-    return await this.db.getAll('audioFiles');
-  }
-
-  async getAllMetadata(): Promise<MusicStreamDB['metadata']['value'][]> {
-    return await this.db.getAll('metadata');
+    return this.db.getAll('audioFiles');
   }
 
   async deleteAudioFile(id: number): Promise<void> {
     await this.db.delete('audioFiles', id);
   }
 
-  async deleteMetadata(id: number): Promise<void> {
-    await this.db.delete('metadata', id);
+  private async ensureDBInitialized(): Promise<void> {
+    if (!this.db) {
+      await this.initDB();
+    }
+  }
+  
+  getAllTracks(): Observable<MusicStreamDB['tracks']['value'][]> {
+    return from(
+      (async () => {
+        await this.ensureDBInitialized();  // Ensure DB is initialized
+        return this.db.getAll('tracks');
+      })()
+    );
+  }
+  
+
+  // Tracks Methods
+  addTrack(track: MusicStreamDB['tracks']['value']): Observable<number> {
+    return from(
+      (async () => {
+        await this.ensureDBInitialized();
+        if (track.description && track.description.length > 200) {
+          throw new Error('Description exceeds 200 characters');
+        }
+        return this.db.put('tracks', { ...track, createdAt: new Date() });
+      })()
+    );
+  }
+
+
+  deleteTrack(trackId: number): Observable<void> {
+    return from(this.db.delete('tracks', trackId));
+  }
+
+  async searchTracksByCategory(category: string): Promise<MusicStreamDB['tracks']['value'][]> {
+    const tracks = await this.db.getAll('tracks');
+    return tracks.filter((track) => track.category.toLowerCase() === category.toLowerCase());
   }
 }

@@ -1,1 +1,47 @@
-<p>track-list works!</p>
+<div class="track-list">
+    <h1>Track List</h1>
+  
+    <!-- Form to add a new track -->
+    <form (ngSubmit)="addTrack()">
+      <div>
+        <label for="title">Title:</label>
+        <input type="text" id="title" [(ngModel)]="newTrack.title" name="title" required>
+      </div>
+  
+      <div>
+        <label for="artist">Artist:</label>
+        <input type="text" id="artist" [(ngModel)]="newTrack.artist" name="artist" required>
+      </div>
+  
+      <div>
+        <label for="category">Category:</label>
+        <input type="text" id="category" [(ngModel)]="newTrack.category" name="category" required>
+      </div>
+  
+      <div>
+        <label for="duration">Duration (seconds):</label>
+        <input type="number" id="duration" [(ngModel)]="newTrack.duration" name="duration" required>
+      </div>
+  
+      <button type="submit">Add Track</button>
+    </form>
+  
+    <div *ngIf="tracks$ | async as tracks; else noTracks">
+      <ul>
+        <li *ngFor="let track of tracks">
+          <h3>{{ track.title }}</h3>
+          <p>Artist: {{ track.artist }}</p>
+          <p>Category: {{ track.category }}</p>
+          <p>Duration: {{ track.duration }} minutes</p>
+          <button *ngIf="track.id !== undefined" (click)="deleteTrack(track.id)">Delete</button>
+        </li>
+      </ul>
+    </div>
+    
+    
+  
+    <ng-template #noTracks>
+      <p>No tracks available. Add a track to get started!</p>
+    </ng-template>
+  </div>
+  
