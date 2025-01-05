@@ -15,12 +15,12 @@ export const loadTracksFailure = createAction(
 
 export const addTrack = createAction(
   '[Track] Add Track',
-  props<{ track: Track }>()
+  props<{ track: Track; audioFile: { fileBlob: Blob; fileName: string; fileType: string; fileSize: number; } }>()
 );
 
 export const addTrackSuccess = createAction(
   '[Track] Add Track Success',
-  props<{ track: Track }>() 
+  props<{ track: Track; audioFileId: number }>()
 );
 
 export const addTrackFailure = createAction(

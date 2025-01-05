@@ -19,9 +19,9 @@ export const trackReducer = createReducer(
     tracks,
     error: null,  // Reset error on successful load
   })),
-  on(addTrackSuccess, (state, { track }) => ({
+  on(addTrackSuccess, (state, { track, audioFileId }) => ({
     ...state,
-    tracks: [...state.tracks, track],
+    tracks: [...state.tracks, { ...track, audioFileId }],
     error: null,  // Reset error on successful add
   })),
   on(deleteTrackSuccess, (state, { trackId }) => ({

@@ -20,9 +20,10 @@ interface MusicStreamDB extends DBSchema {
       id?: number;
       title: string;
       artist: string;
-      description?: string; 
-      category: string; 
-      duration: number; 
+      description?: string;
+      category: string;
+      duration: number;
+      audioFileId?: number;
       createdAt: Date;
     };
   };
@@ -57,7 +58,7 @@ export class IndexedDbService {
     }
   }
   
-
+  
   // Audio Files Methods
   async addAudioFile(file: Blob, fileName: string, fileType: string, fileSize: number): Promise<number | null> {
     if (fileSize > 15 * 1024 * 1024) {
@@ -96,7 +97,7 @@ export class IndexedDbService {
     );
   }
   
-
+  
   // Tracks Methods
   addTrack(track: MusicStreamDB['tracks']['value']): Observable<number> {
     return from(
@@ -125,7 +126,6 @@ export class IndexedDbService {
     );
   }
 
-
   deleteTrack(trackId: number): Observable<void> {
     return from(this.db.delete('tracks', trackId));
   }
@@ -134,4 +134,41 @@ export class IndexedDbService {
     const tracks = await this.db.getAll('tracks');
     return tracks.filter((track) => track.category.toLowerCase() === category.toLowerCase());
   }
+
+  async addTrackWithAudioFile(
+    track: MusicStreamDB['tracks']['value'],
+    file: Blob,
+    fileName: string,
+    fileType: string,
+    fileSize: number
+  ): Promise<number | null> {
+    await this.ensureDBInitialized();
+  
+    // Add audio file and get its ID
+    const audioFileId = await this.addAudioFile(file, fileName, fileType, fileSize);
+  
+    if (!audioFileId) {
+      console.error('Failed to add audio file');
+      return null;
+    }
+  
+    const createdAt = new Date();
+  
+    // Add track with the associated audioFileId
+    const trackId = await this.db.add('tracks', {
+      ...track,
+      createdAt,
+      audioFileId,  // Add the audioFileId to the track
+    });
+  
+    if (!trackId) {
+      console.error('Failed to add track');
+      await this.deleteAudioFile(audioFileId); // Cleanup if track creation fails
+      return null;
+    }
+  
+    console.log(`Track added with ID ${trackId} and associated audio file ID ${audioFileId}`);
+    return trackId;
+  }
+  
 }
