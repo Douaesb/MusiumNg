@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
-import { Track } from '../../models/track.model';
+import { Track } from '../../state/track/track.models';
 import * as TrackActions from '../../state/track/track.actions';
 import { TrackState } from '../../state/track/track.reducer';
+import { IndexedDbService } from '../../core/services/indexed-db.service';
 import { AsyncPipe, NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -15,105 +16,137 @@ import { FormsModule } from '@angular/forms';
     FormsModule,
     NgIf,
     NgFor,
-    AsyncPipe
-  ]
+    AsyncPipe,
+  ],
 })
 export class TrackListComponent implements OnInit {
-
   tracks$: Observable<Track[]>;
   error$: Observable<string | null>;
-  newTrack: Track = { id: 0, title: '', artist: '', category: '', duration: 0, createdAt: new Date(), audioFileId: 0, audioFile: { fileBlob: new Blob(), fileName: '', fileType: '', fileSize: 0 } }; // Add audioFile
-  selectedTrack: Track | null = null; // Holds the track being edited
+  newTrack: Track = this.createEmptyTrack();
+  selectedTrack: Track | null = null; 
+  audioFile: { fileBlob: Blob; fileName: string; fileType: string; fileSize: number } | null = null;
+  audioFileUrl: string | null = null; // To hold the generated audio file URL
 
-  constructor(private store: Store<{ track: TrackState }>) {
+  constructor(
+    private store: Store<{ track: TrackState }>, 
+    private indexedDbService: IndexedDbService // Inject IndexedDbService
+  ) {
     this.tracks$ = this.store.select(state => state.track.tracks);
     this.error$ = this.store.select(state => state.track.error);
   }
 
   ngOnInit(): void {
-    // Dispatch the action to load tracks when the component initializes
     this.store.dispatch(TrackActions.loadTracks());
   }
+
+  // Fetch the audio file URL for the given track
+  fetchAudioFileUrl(audioFileId: number): void {
+    this.indexedDbService.getAudioFileUrl(audioFileId).subscribe({
+      next: (url) => {
+        this.audioFileUrl = url;
+        console.log('Audio file URL:', this.audioFileUrl);
+      },
+      error: (err) => {
+        console.error('Error fetching audio file URL:', err);
+      }
+    });
+  }
+  
+
   addTrack(): void {
     console.log('New Track Data:', this.newTrack);
-  
-    // Log individual properties to check their values
-    console.log('Track Title:', this.newTrack.title);
-    console.log('Track Artist:', this.newTrack.artist);
-    console.log('Track Category:', this.newTrack.category);
-    console.log('Track Audio File ID:', this.newTrack.audioFileId);
-    console.log('Track Audio File:', this.newTrack.audioFile);
-  
-    // Ensure audioFileId is generated or assigned if missing
-    if (!this.newTrack.audioFileId) {
-      this.newTrack.audioFileId = this.generateUniqueId(); // Example: you can generate or set a valid ID here
+    
+    if (!this.newTrack.audioFileId || this.newTrack.audioFileId === 0) {
+      this.newTrack.audioFileId = this.generateUniqueId();
       console.log('Generated Audio File ID:', this.newTrack.audioFileId);
     }
-  
-    // Check if all required fields are populated, also ensuring audioFileId is truthy
-    if (this.newTrack.title && this.newTrack.artist && this.newTrack.category && this.newTrack.audioFileId && this.newTrack.audioFile) {
-      console.log('Condition met, generating ID and dispatching track:', this.newTrack);
-  
-      // Set track id and log the new track object
-      this.newTrack.id = this.generateUniqueId();
-      console.log('New Track after ID generation:', this.newTrack);
-  
-      // Dispatch the track action
-      this.store.dispatch(TrackActions.addTrack({ 
-        track: this.newTrack, 
-        audioFile: this.newTrack.audioFile 
-      }));
-  
+
+    if (this.isTrackValid(this.newTrack) && this.audioFile) {
+      console.log('Track is valid. Dispatching action with track:', this.newTrack);
+
+      const trackId = this.generateUniqueId(); 
+      this.newTrack.id = trackId;
+
+      // Add the audio file to the store first
+      this.store.dispatch(TrackActions.addAudioFile({ audioFile: this.audioFile }));
+
+      // Then add the track to the store
+      this.store.dispatch(TrackActions.addTrack({ track: this.newTrack }));
+
       // Reset the form
       this.resetForm();
     } else {
-      console.log('Condition not met, not dispatching track:', this.newTrack);
-      if (!this.newTrack.audioFileId) {
-        console.log('Audio File ID is missing or invalid.');
-      }
+      console.error('Track data is invalid. Missing required fields:', this.newTrack);
     }
   }
-  
-  
-
-  
 
   selectTrack(track: Track): void {
-    console.log('Selected Track:', track);
+    console.log('Track selected for editing:', track);
     this.selectedTrack = { ...track };
-    console.log('Selected Track 2 :', this.selectedTrack);
+
+    // Fetch the audio file URL for the selected track
+    if (track.audioFileId) {
+      this.fetchAudioFileUrl(track.audioFileId);
+    }
   }
 
   editTrack(updatedTrack: Track): void {
-    if (updatedTrack.id && updatedTrack.title && updatedTrack.artist && updatedTrack.category) {
+    if (this.isTrackValid(updatedTrack)) {
+      console.log('Track updated successfully:', updatedTrack);
       this.store.dispatch(TrackActions.editTrack({ track: updatedTrack }));
       this.selectedTrack = null;
+    } else {
+      console.error('Updated track data is invalid:', updatedTrack);
     }
   }
 
   deleteTrack(trackId: number): void {
+    console.log('Deleting track with ID:', trackId);
     this.store.dispatch(TrackActions.deleteTrack({ trackId }));
   }
 
+  onFileChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input?.files?.length) {
+      const file = input.files[0];
+      this.audioFile = {
+        fileBlob: file,
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+      };
+      
+      this.audioFileUrl = URL.createObjectURL(this.audioFile.fileBlob);
+      console.log('File uploaded successfully:', this.audioFileUrl);
+    } else {
+      console.warn('No file selected.');
+    }
+  }
+  
+
   private resetForm(): void {
-    this.newTrack = { id: 0, title: '', artist: '', category: '', duration: 0, createdAt: new Date(), audioFileId: 0, audioFile: { fileBlob: new Blob(), fileName: '', fileType: '', fileSize: 0 } }; // Reset audioFile
+    this.newTrack = this.createEmptyTrack();
+    this.audioFile = null; // Reset audio file
+    console.log('Form has been reset.');
   }
 
   private generateUniqueId(): number {
     return Date.now() + Math.floor(Math.random() * 1000);
   }
 
-  // Method to handle file input and update the audioFile property
-  onFileChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input?.files?.length) {
-      const file = input.files[0];
-      this.newTrack.audioFile = {
-        fileBlob: file,
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-      };
-    }
+  private isTrackValid(track: Track): boolean {
+    return !!(track.title && track.artist && track.category && track.audioFileId);
+  }
+
+  private createEmptyTrack(): Track {
+    return {
+      id: 0,
+      title: '',
+      artist: '',
+      category: '',
+      duration: 0,
+      createdAt: new Date(),
+      audioFileId: 0,
+    };
   }
 }

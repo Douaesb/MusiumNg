@@ -28,34 +28,42 @@ export class TrackEffects {
     )
   );
 
-  // Effect for adding a track
+addAudioFile$ = createEffect(() =>
+  this.actions$.pipe(
+    ofType(TrackActions.addAudioFile),
+    mergeMap(({ audioFile }) =>
+      this.indexedDbService.addAudioFile(audioFile).pipe(
+        map((audioFileId) => {
+          console.log('Audio file added with ID:', audioFileId);
+          return TrackActions.addAudioFileSuccess({ audioFileId });
+        }),
+        catchError((error) => {
+          console.error('Error in addAudioFile effect:', error);
+          return of(TrackActions.trackError({ error }));
+        })
+      )
+    )
+  )
+);
+
 addTrack$ = createEffect(() =>
   this.actions$.pipe(
     ofType(TrackActions.addTrack),
-    mergeMap(({ track }) => {
-      console.log('Action received to add track:', track);
-      return this.indexedDbService.addTrack(track).pipe(
-        // Assuming addTrack method now returns the audioFileId only
-        mergeMap((audioFileId) =>  // Expecting audioFileId, not the full track
-          this.indexedDbService.getAllTracks().pipe(
-            map((tracks) => {
-              // Find the track object (could be based on some criteria or returned directly)
-              const trackWithAudioFile = { ...track, audioFileId }; // Add the audioFileId to the track
-
-              // Dispatching addTrackSuccess with the track and audioFileId as separate properties
-              return TrackActions.addTrackSuccess({
-                track: trackWithAudioFile, // Pass the updated track with audioFileId
-                audioFileId: audioFileId  // Pass the audioFileId separately
-              });
-            })
-          )
-        ),
+    mergeMap(({ track }) =>
+      this.indexedDbService.addTrack(track).pipe(
+        map((trackId) => {
+          console.log('Track added with ID:', trackId);
+          return TrackActions.addTrackSuccess({
+            track: { ...track, id: trackId },
+            audioFileId: track.audioFileId! ?? null, // Ensure `audioFileId` is included
+          });
+        }),
         catchError((error) => {
           console.error('Error in addTrack effect:', error);
-          return of(TrackActions.trackError({ error }));
+          return of(TrackActions.trackError({ error: error.message }));
         })
-      );
-    })
+      )
+    )
   )
 );
 
