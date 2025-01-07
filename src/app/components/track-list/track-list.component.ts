@@ -1,12 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { Track } from '../../state/track/track.models';
 import * as TrackActions from '../../state/track/track.actions';
 import { TrackState } from '../../state/track/track.reducer';
 import { IndexedDbService } from '../../core/services/indexed-db.service';
-import { AsyncPipe, NgFor, NgIf } from '@angular/common';
+import { Router } from '@angular/router'; 
 import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-track-list',
@@ -14,22 +15,23 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './track-list.component.html',
   imports: [
     FormsModule,
-    NgIf,
-    NgFor,
-    AsyncPipe,
-  ],
+    CommonModule
+  ]
 })
 export class TrackListComponent implements OnInit {
+  @ViewChild('crudModal') crudModal!: ElementRef;
+
   tracks$: Observable<Track[]>;
   error$: Observable<string | null>;
   newTrack: Track = this.createEmptyTrack();
   selectedTrack: Track | null = null; 
   audioFile: { fileBlob: Blob; fileName: string; fileType: string; fileSize: number } | null = null;
-  audioFileUrl: string | null = null; // To hold the generated audio file URL
+  audioFileUrl: string | null = null; 
 
   constructor(
     private store: Store<{ track: TrackState }>, 
-    private indexedDbService: IndexedDbService // Inject IndexedDbService
+    private indexedDbService: IndexedDbService,
+    private router: Router
   ) {
     this.tracks$ = this.store.select(state => state.track.tracks);
     this.error$ = this.store.select(state => state.track.error);
@@ -39,7 +41,24 @@ export class TrackListComponent implements OnInit {
     this.store.dispatch(TrackActions.loadTracks());
   }
 
-  // Fetch the audio file URL for the given track
+  openCreateModal(): void {
+    this.newTrack = this.createEmptyTrack();
+    this.audioFile = null;
+    this.crudModal.nativeElement.classList.remove('hidden');
+  }
+
+  closeCreateModal(): void {
+    this.crudModal.nativeElement.classList.add('hidden');
+  }
+
+  openEditModal(track: Track): void {
+    this.selectedTrack = { ...track };
+  }
+
+  closeEditModal(): void {
+    this.selectedTrack = null;
+  }
+
   fetchAudioFileUrl(audioFileId: number): void {
     this.indexedDbService.getAudioFileUrl(audioFileId).subscribe({
       next: (url) => {
@@ -51,50 +70,43 @@ export class TrackListComponent implements OnInit {
       }
     });
   }
-  
 
   addTrack(): void {
     console.log('New Track Data:', this.newTrack);
-    
-    if (!this.newTrack.audioFileId || this.newTrack.audioFileId === 0) {
-      this.newTrack.audioFileId = this.generateUniqueId();
-      console.log('Generated Audio File ID:', this.newTrack.audioFileId);
-    }
 
     if (this.isTrackValid(this.newTrack) && this.audioFile) {
-      console.log('Track is valid. Dispatching action with track:', this.newTrack);
+      console.log('Track is valid. Attempting to add audio file:', this.audioFile);
 
-      const trackId = this.generateUniqueId(); 
-      this.newTrack.id = trackId;
+      this.indexedDbService.addAudioFile(this.audioFile).subscribe({
+        next: (audioFileId) => {
+          console.log('Audio File ID returned:', audioFileId);
+          
+          this.newTrack.audioFileId = audioFileId; 
+          this.newTrack.id = audioFileId;
 
-      // Add the audio file to the store first
-      this.store.dispatch(TrackActions.addAudioFile({ audioFile: this.audioFile }));
-
-      // Then add the track to the store
-      this.store.dispatch(TrackActions.addTrack({ track: this.newTrack }));
-
-      // Reset the form
-      this.resetForm();
+          this.store.dispatch(TrackActions.addTrack({ track: this.newTrack }));
+          this.resetForm();
+          this.closeCreateModal();
+        },
+        error: (err) => {
+          console.error('Error adding audio file:', err);
+        }
+      });
     } else {
-      console.error('Track data is invalid. Missing required fields:', this.newTrack);
+      console.error('Track data is invalid or audio file is missing:', this.newTrack);
     }
   }
 
   selectTrack(track: Track): void {
-    console.log('Track selected for editing:', track);
-    this.selectedTrack = { ...track };
-
-    // Fetch the audio file URL for the selected track
-    if (track.audioFileId) {
-      this.fetchAudioFileUrl(track.audioFileId);
-    }
+    console.log('Track selected', track);
+    this.router.navigate(['/tracks', track.id]);
   }
 
   editTrack(updatedTrack: Track): void {
     if (this.isTrackValid(updatedTrack)) {
       console.log('Track updated successfully:', updatedTrack);
       this.store.dispatch(TrackActions.editTrack({ track: updatedTrack }));
-      this.selectedTrack = null;
+      this.closeEditModal();
     } else {
       console.error('Updated track data is invalid:', updatedTrack);
     }
@@ -123,19 +135,14 @@ export class TrackListComponent implements OnInit {
     }
   }
   
-
   private resetForm(): void {
     this.newTrack = this.createEmptyTrack();
-    this.audioFile = null; // Reset audio file
+    this.audioFile = null;
     console.log('Form has been reset.');
   }
 
-  private generateUniqueId(): number {
-    return Date.now() + Math.floor(Math.random() * 1000);
-  }
-
   private isTrackValid(track: Track): boolean {
-    return !!(track.title && track.artist && track.category && track.audioFileId);
+    return !!(track.title && track.artist && track.category);
   }
 
   private createEmptyTrack(): Track {
