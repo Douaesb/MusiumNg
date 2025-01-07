@@ -23,7 +23,7 @@ export class AudioPlayerComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('audioPlayer') audioPlayerRef!: ElementRef<HTMLAudioElement>;
 
   audioFileUrl: string | null = null;
-  isPlaying: boolean = false;
+  isPlaying: boolean = true;
   volume: number = 1;
   currentTime: number = 0;
   duration: number = 0;
@@ -51,6 +51,7 @@ export class AudioPlayerComponent implements OnInit, OnDestroy, OnChanges {
                 console.log('Track fetched from IndexedDB:', track);
                 this.store.dispatch(TrackActions.selectTrack({ track }));
                 this.store.dispatch(AudioActions.selectTrack({ track }));
+                this.store.dispatch(AudioActions.play());  
               } else {
                 console.log('Track not found in IndexedDB');
                 this.store.dispatch(TrackActions.selectTrack({ track: null }));
@@ -65,14 +66,14 @@ export class AudioPlayerComponent implements OnInit, OnDestroy, OnChanges {
         })
       ).subscribe()
     );
-
+  
     this.selectedTrack$.pipe(
       take(1)
     ).subscribe(track => {
       console.log('Initial selected track from store:', track);
     });
   }
-
+  
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['track'] && this.track) {
       console.log('Track changed in AudioPlayerComponent:', this.track);
@@ -102,21 +103,38 @@ export class AudioPlayerComponent implements OnInit, OnDestroy, OnChanges {
     const audioElement = this.audioPlayerRef.nativeElement;
     this.duration = audioElement.duration;
     audioElement.volume = this.volume;
+  
+    // Ensure the play action is only dispatched when the audio is ready
+    if (this.isPlaying) {
+      audioElement.play();
+      this.store.dispatch(AudioActions.play());
+    }
+  
     this.cdr.detectChanges();
   }
+  
 
   playPause(): void {
     const audioElement = this.audioPlayerRef.nativeElement;
+    
+    // Check if audio is ready before playing
     if (this.isPlaying) {
       audioElement.pause();
       this.store.dispatch(AudioActions.pause());
     } else {
-      audioElement.play();
-      this.store.dispatch(AudioActions.play());
+      // Ensure the audio is ready to play
+      if (audioElement.readyState >= 3) {  // 3 means the audio is at least partially loaded
+        audioElement.play();
+        this.store.dispatch(AudioActions.play());
+      } else {
+        console.log('Audio not ready to play yet');
+      }
     }
+  
     this.isPlaying = !this.isPlaying;
     this.cdr.detectChanges();
   }
+  
 
   onSeek(event: Event): void {
     const audioElement = this.audioPlayerRef.nativeElement;
@@ -154,12 +172,20 @@ export class AudioPlayerComponent implements OnInit, OnDestroy, OnChanges {
   private loadState(): void {
     const savedState = localStorage.getItem('audioPlayerState');
     if (savedState) {
-      const { volume, currentTime, isPlaying } = JSON.parse(savedState);
+      const { volume, currentTime } = JSON.parse(savedState);
       this.volume = volume || 1;
       this.currentTime = currentTime || 0;
-      this.isPlaying = isPlaying || false;
     }
+    this.isPlaying = true;
+    // this.playAudio();
   }
+  // private playAudio(): void {
+  //   const audioElement = document.getElementById('audioPlayer') as HTMLAudioElement;
+  //   if (audioElement) {
+  //     audioElement.currentTime = this.currentTime; // Set the current playback time
+  //     audioElement.play(); // Start playback
+  //   }
+  // }
 
   nextTrack(): void {
     if (this.track?.id) {
@@ -168,8 +194,8 @@ export class AudioPlayerComponent implements OnInit, OnDestroy, OnChanges {
           if (nextTrack) {
             this.store.dispatch(TrackActions.selectTrack({ track: nextTrack }));
             this.store.dispatch(AudioActions.selectTrack({ track: nextTrack }));
-            // Update URL with the new track ID (use /tracks/:id path)
-            this.router.navigate([`/tracks/${nextTrack.id}`]);  // Adjusted the route
+            this.store.dispatch(AudioActions.play());  
+            this.router.navigate([`/tracks/${nextTrack.id}`]);
           } else {
             console.log('No next track found.');
           }
@@ -188,8 +214,8 @@ export class AudioPlayerComponent implements OnInit, OnDestroy, OnChanges {
           if (prevTrack) {
             this.store.dispatch(TrackActions.selectTrack({ track: prevTrack }));
             this.store.dispatch(AudioActions.selectTrack({ track: prevTrack }));
-            // Update URL with the new track ID (use /tracks/:id path)
-            this.router.navigate([`/tracks/${prevTrack.id}`]);  // Adjusted the route
+            this.store.dispatch(AudioActions.play()); 
+            this.router.navigate([`/tracks/${prevTrack.id}`]);
           } else {
             console.log('No previous track found.');
           }

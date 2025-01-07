@@ -12,7 +12,7 @@ export interface AudioState {
 
 export const initialState: AudioState = {
   currentTrack: null,
-  isPlaying: false,
+  isPlaying: true,
   volume: 1,
   currentTime: 0,
   error: null,

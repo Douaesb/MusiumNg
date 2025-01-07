@@ -122,25 +122,62 @@ export class IndexedDbService {
     );
   }
 
-  updateTrack(track: MusicStreamDB['tracks']['value']): Observable<number> {
+  updateTrack(track: MusicStreamDB['tracks']['value'], newFile?: { fileBlob: Blob; fileName: string; fileType: string; fileSize: number }): Observable<number> {
     return from(
       (async () => {
         await this.ensureDBInitialized();
+  
+        // Validate track description
         if (track.description && track.description.length > 200) {
           throw new Error('Description exceeds 200 characters');
         }
         if (!track.id) {
           throw new Error('Track ID is required for updating');
         }
+  
+        // Handle new audio file
+        if (newFile) {
+          if (track.audioFileId) {
+            const oldAudioFile = await this.db.get('audioFiles', track.audioFileId);
+  
+            if (oldAudioFile) {
+              // Replace the existing file but retain its ID
+              await this.db.put('audioFiles', {
+                ...oldAudioFile,
+                fileBlob: newFile.fileBlob,
+                fileName: newFile.fileName,
+                fileType: newFile.fileType,
+                fileSize: newFile.fileSize,
+                createdAt: new Date(),
+              });
+            }
+          } else {
+            // If no audio file exists, add a new one and link it to the track
+            const newAudioFileId = await this.addAudioFile(newFile).toPromise();
+            track.audioFileId = newAudioFileId;
+          }
+        }
+  
+        // Update the track details
         return this.db.put('tracks', { ...track, createdAt: new Date() });
       })()
     );
   }
+  
 
   deleteTrack(trackId: number): Observable<void> {
-    return from(this.ensureDBInitialized().then(() => this.db.delete('tracks', trackId)));
+    return from(
+      (async () => {
+        await this.ensureDBInitialized();
+        const track = await this.db.get('tracks', trackId);
+        if (track?.audioFileId) {
+          await this.db.delete('audioFiles', track.audioFileId); // Delete the associated audio file
+        }
+        await this.db.delete('tracks', trackId); // Delete the track
+      })()
+    );
   }
-
+  
   searchTracksByCategory(category: string): Observable<MusicStreamDB['tracks']['value'][]> {
     return from(
       (async () => {

@@ -105,13 +105,26 @@ export class TrackListComponent implements OnInit {
   editTrack(updatedTrack: Track): void {
     if (this.isTrackValid(updatedTrack)) {
       console.log('Track updated successfully:', updatedTrack);
-      this.store.dispatch(TrackActions.editTrack({ track: updatedTrack }));
-      this.closeEditModal();
+        if (this.audioFile) {
+        this.indexedDbService.updateTrack(updatedTrack, this.audioFile).subscribe({
+          next: () => {
+            console.log('Track and audio file updated successfully.');
+            this.store.dispatch(TrackActions.editTrack({ track: updatedTrack }));
+            this.closeEditModal();
+          },
+          error: (err) => {
+            console.error('Error updating track with audio file:', err);
+          },
+        });
+      } else {
+        this.store.dispatch(TrackActions.editTrack({ track: updatedTrack }));
+        this.closeEditModal();
+      }
     } else {
       console.error('Updated track data is invalid:', updatedTrack);
     }
   }
-
+  
   deleteTrack(trackId: number): void {
     console.log('Deleting track with ID:', trackId);
     this.store.dispatch(TrackActions.deleteTrack({ trackId }));
