@@ -28,6 +28,7 @@
     audioFile: { fileBlob: Blob; fileName: string; fileType: string; fileSize: number } | null = null;
     audioFileUrl: string | null = null; 
     searchQuery: string = '';
+    categories: string[] = ['Pop', 'Rock', 'Jazz', 'Classical', 'Piano', 'Chaabi'];
     filteredTracks$: Observable<Track[]>;
     constructor(
       private store: Store<{ track: TrackState }>, 
@@ -42,6 +43,7 @@
 
     ngOnInit(): void {
       this.store.dispatch(TrackActions.loadTracks());
+      this.filteredTracks$ = this.tracks$;
     }
 
     openCreateModal(): void {
@@ -178,5 +180,11 @@
         return;
       }
       this.filteredTracks$ = this.indexedDbService.searchTracks(this.searchQuery);
+    }
+    filterByCategory(category: string): void {
+      this.filteredTracks$ = this.indexedDbService.searchTracksByCategory(category);
+    }
+    resetFilter(): void {
+      this.filteredTracks$ = this.tracks$;
     }
   }
