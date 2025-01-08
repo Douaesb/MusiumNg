@@ -188,6 +188,22 @@ export class IndexedDbService {
     );
   }
 
+  searchTracks(query: string): Observable<MusicStreamDB['tracks']['value'][]> {
+    return from(
+      (async () => {
+        await this.ensureDBInitialized();
+        const tracks = await this.db.getAll('tracks');
+        const lowerCaseQuery = query.toLowerCase();
+        return tracks.filter(
+          track =>
+            track.title.toLowerCase().includes(lowerCaseQuery) ||
+            (track.artist && track.artist.toLowerCase().includes(lowerCaseQuery))
+        );
+      })()
+    );
+  }
+  
+
   async addTrackWithAudioFile(
     track: MusicStreamDB['tracks']['value'],
     file: Blob,

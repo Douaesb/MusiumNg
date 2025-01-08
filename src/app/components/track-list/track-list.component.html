@@ -223,8 +223,13 @@ class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 
                 <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                <input type="text" placeholder="Search" class="border-2  border-teal-300 w-full bg-teal-900 rounded-full py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-teal-400">
-            </div>
+                <input 
+                type="text" 
+                placeholder="Search" 
+                [(ngModel)]="searchQuery" 
+                (input)="onSearch()" 
+                class="border-2 border-teal-300 w-full bg-teal-900 rounded-full py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-teal-400"
+              >            </div>
         </div>
 
         <!-- Categories -->
@@ -273,8 +278,8 @@ class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 
         </div>
 
         <!-- Playlist -->
-        <div class="flex-1 p-4 space-y-2" *ngIf="tracks$ | async as tracks; else noTracks">
-          <div *ngFor="let track of tracks" class="flex items-center justify-between bg-teal-800 p-3 rounded-lg hover:bg-teal-900 group transition-colors">
+        <div class="flex-1 p-4 space-y-2" *ngIf="(filteredTracks$ | async) as filteredTracks;   ">
+          <div *ngFor="let track of filteredTracks" class="flex items-center justify-between bg-teal-800 p-3 rounded-lg hover:bg-teal-900 group transition-colors">
             <div *ngIf="selectedTrack?.id !== track.id" class="flex items-center gap-3">
               <div class="w-8 h-8 bg-teal-400/20 rounded-lg"></div>
               <div>
@@ -297,10 +302,10 @@ class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 
           </div>
         </div>
         
-<ng-template #noTracks>
+<!-- <ng-template #noTracks>
               <p class="text-teal-400 text-center">
                 No tracks available. Add a track to get started!
               </p>
-            </ng-template>   
+            </ng-template>    -->
     </div>
 
