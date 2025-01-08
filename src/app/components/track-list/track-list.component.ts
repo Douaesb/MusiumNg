@@ -130,7 +130,7 @@ export class TrackListComponent implements OnInit {
   addTrack(): void {
     console.log('New Track Data:', this.newTrack);
 
-    if (this.isTrackValid(this.newTrack) && this.audioFile && this.imageFile) {
+    if (this.isTrackValid(this.newTrack) && this.audioFile ) {
       console.log(
         'Track is valid. Attempting to add audio and image files:',
         this.audioFile,
@@ -244,26 +244,42 @@ export class TrackListComponent implements OnInit {
       console.warn('No file selected.');
     }
   }
-  onImageFileChange(event: Event): void {
+  onImageFileChange(event: Event, isUpdate: boolean = false): void {
     const input = event.target as HTMLInputElement;
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+  
     if (input.files && input.files[0]) {
       const file = input.files[0];
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+  
       if (!allowedTypes.includes(file.type)) {
         alert('Invalid file type. Please upload an image (JPEG, PNG, GIF).');
         return;
       }
-      this.newImageFile = {
-        fileBlob: file,
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-      };
-      console.log('Image file selected:', this.newImageFile);
+  
+      if (isUpdate) {
+        // For updating
+        this.newImageFile = {
+          fileBlob: file,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+        };
+        console.log('Image file selected for update:', this.newImageFile);
+      } else {
+        // For adding a new image
+        this.imageFile = {
+          fileBlob: file,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+        };
+        console.log('New image file selected:', this.imageFile);
+      }
     } else {
       console.log('No file selected.');
     }
   }
+  
 
   private resetForm(): void {
     this.newTrack = this.createEmptyTrack();
