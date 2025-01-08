@@ -44,7 +44,25 @@ export class TrackEffects {
       )
     )
   );
-
+  
+  addImageFile$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(TrackActions.addImageFile),
+      mergeMap(({ imageFile }) =>
+        this.indexedDbService.addImageFile(imageFile).pipe(
+          map((imageFileId) => {
+            console.log('Image file added with ID:', imageFileId);
+            return TrackActions.addImageFileSuccess({ imageFileId });
+          }),
+          catchError((error) => {
+            console.error('Error in addImageFile effect:', error);
+            return of(TrackActions.addImageFileFailure({ error: error.message }));
+          })
+        )
+      )
+    )
+  );
+  
   addTrack$ = createEffect(() =>
     this.actions$.pipe(
       ofType(TrackActions.addTrack),

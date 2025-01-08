@@ -26,5 +26,10 @@ export const addAudioFile = createAction('[AudioFile] Add Audio File', props<{ a
 export const addAudioFileSuccess = createAction('[AudioFile] Add Audio File Success', props<{ audioFileId: number }>());
 export const addAudioFileFailure = createAction('[AudioFile] Add Audio File Failure', props<{ error: string }>());
 
+export const addImageFile = createAction('[ImageFile] Add Image File', props<{ imageFile: { fileBlob: Blob; fileName: string; fileType: string; fileSize: number } }>());
+export const addImageFileSuccess = createAction('[ImageFile] Add Image File Success', props<{ imageFileId: number }>());
+export const addImageFileFailure = createAction('[ImageFile] Add Image File Failure', props<{ error: string }>());
+
+
 export const trackError = createAction('[Track] Track Error', props<{ error: string }>());
 

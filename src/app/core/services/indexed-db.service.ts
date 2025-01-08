@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { Observable, from } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
 import { Track } from '../../state/track/track.models';
 
 interface MusicStreamDB extends DBSchema {
@@ -27,7 +27,20 @@ interface MusicStreamDB extends DBSchema {
       category: string;
       duration: number;
       audioFileId?: number;
+      imageFileId?: number;
       createdAt: Date;
+    };
+  };
+  imageFiles: {
+    key: number;
+    value: {
+      id?: number;
+      fileName: string;
+      fileBlob: Blob;
+      fileType: string;
+      fileSize: number;
+      createdAt: Date;
+      trackId?: number;
     };
   };
 }
@@ -52,6 +65,9 @@ export class IndexedDbService {
           if (!db.objectStoreNames.contains('tracks')) {
             db.createObjectStore('tracks', { keyPath: 'id', autoIncrement: true });
           }
+          if (!db.objectStoreNames.contains('imageFiles')) { 
+            db.createObjectStore('imageFiles', { keyPath: 'id', autoIncrement: true });
+          }
         },
       });
       console.log('IndexedDB Initialized');
@@ -59,6 +75,7 @@ export class IndexedDbService {
       console.error('Error initializing IndexedDB:', error);
     }
   }
+  
 
   private async ensureDBInitialized(): Promise<void> {
     if (!this.db) {
@@ -80,9 +97,6 @@ export class IndexedDbService {
     );
   }
 
-  getAllAudioFiles(): Observable<MusicStreamDB['audioFiles']['value'][]> {
-    return from(this.ensureDBInitialized().then(() => this.db.getAll('audioFiles')));
-  }
 
   deleteAudioFile(id: number): Observable<void> {
     return from(this.ensureDBInitialized().then(() => this.db.delete('audioFiles', id)));
@@ -101,6 +115,33 @@ export class IndexedDbService {
     );
   }
 
+  //IMAGES
+  addImageFile(imageFile: { fileBlob: Blob; fileName: string; fileType: string; fileSize: number }): Observable<number> {
+    return from(
+      (async () => {
+        await this.ensureDBInitialized();
+        const id = await this.db.add('imageFiles', {
+          ...imageFile,
+          createdAt: new Date(),
+        });
+        return id;
+      })()
+    );
+  }
+  
+  getImageFileUrl(imageFileId: number): Observable<string> {
+    return from(
+      (async () => {
+        await this.ensureDBInitialized();
+        const imageFile = await this.db.get('imageFiles', imageFileId);
+        if (imageFile) {
+          return URL.createObjectURL(imageFile.fileBlob);
+        }
+        throw new Error('Image file not found');
+      })()
+    );
+  }
+  
   // TRACKS
   getAllTracks(): Observable<MusicStreamDB['tracks']['value'][]> {
     return from(this.ensureDBInitialized().then(() => this.db.getAll('tracks')));
@@ -121,48 +162,106 @@ export class IndexedDbService {
       })()
     );
   }
-
-  updateTrack(track: MusicStreamDB['tracks']['value'], newFile?: { fileBlob: Blob; fileName: string; fileType: string; fileSize: number }): Observable<number> {
+  
+  updateTrack(
+    track: MusicStreamDB['tracks']['value'],
+    newAudioFile?: { fileBlob: Blob; fileName: string; fileType: string; fileSize: number },
+    newImageFile?: { fileBlob: Blob; fileName: string; fileType: string; fileSize: number }
+  ): Observable<number> {
+    console.log('updateTrack called with:', { track, newAudioFile, newImageFile });
+  
     return from(
       (async () => {
         await this.ensureDBInitialized();
+        console.log('Database initialized.');
   
         // Validate track description
         if (track.description && track.description.length > 200) {
+          console.error('Validation error: Description exceeds 200 characters');
           throw new Error('Description exceeds 200 characters');
         }
         if (!track.id) {
+          console.error('Validation error: Track ID is required for updating');
           throw new Error('Track ID is required for updating');
         }
   
         // Handle new audio file
-        if (newFile) {
+        if (newAudioFile) {
+          console.log('Handling new audio file:', newAudioFile);
           if (track.audioFileId) {
+            console.log(`Fetching existing audio file with ID: ${track.audioFileId}`);
             const oldAudioFile = await this.db.get('audioFiles', track.audioFileId);
   
             if (oldAudioFile) {
-              // Replace the existing file but retain its ID
+              console.log('Replacing existing audio file:', oldAudioFile);
               await this.db.put('audioFiles', {
                 ...oldAudioFile,
-                fileBlob: newFile.fileBlob,
-                fileName: newFile.fileName,
-                fileType: newFile.fileType,
-                fileSize: newFile.fileSize,
+                fileBlob: newAudioFile.fileBlob,
+                fileName: newAudioFile.fileName,
+                fileType: newAudioFile.fileType,
+                fileSize: newAudioFile.fileSize,
                 createdAt: new Date(),
               });
+            } else {
+              console.warn('Existing audio file not found.');
             }
           } else {
-            // If no audio file exists, add a new one and link it to the track
-            const newAudioFileId = await this.addAudioFile(newFile).toPromise();
+            console.log('Adding new audio file to the database.');
+            const newAudioFileId = await this.addAudioFile(newAudioFile).toPromise();
+            console.log(`New audio file added with ID: ${newAudioFileId}`);
             track.audioFileId = newAudioFileId;
           }
         }
   
+        // Handle new image file
+        if (newImageFile) {
+          console.log('Handling new image file:', newImageFile);
+          if (track.imageFileId) {
+            console.log(`Fetching existing image file with ID: ${track.imageFileId}`);
+            const oldImageFile = await this.db.get('imageFiles', track.imageFileId);
+  
+            if (oldImageFile) {
+              console.log('Replacing existing image file:', oldImageFile);
+              await this.db.put('imageFiles', {
+                ...oldImageFile,
+                fileBlob: newImageFile.fileBlob,
+                fileName: newImageFile.fileName,
+                fileType: newImageFile.fileType,
+                fileSize: newImageFile.fileSize,
+                createdAt: new Date(),
+              });
+              console.log('Existing image file replaced successfully.');
+            } else {
+              console.warn('Existing image file not found.');
+            }
+          } else {
+            console.log('Adding new image file to the database.');
+            const newImageFileId = await this.addImageFile(newImageFile).toPromise();
+            console.log(`New image file added with ID: ${newImageFileId}`);
+            track.imageFileId = newImageFileId;
+          }
+        } else {
+          console.log('No new image file provided.');
+        }
+  
         // Update the track details
-        return this.db.put('tracks', { ...track, createdAt: new Date() });
+        console.log('Updating track details:', track);
+        const trackId = await this.db.put('tracks', { ...track, createdAt: new Date() });
+        console.log(`Track updated successfully with ID: ${trackId}`);
+  
+        return trackId;
       })()
+    ).pipe(
+      tap(() => console.log('updateTrack operation completed successfully.')),
+      catchError((error) => {
+        console.error('Error in updateTrack operation:', error);
+        throw error;
+      })
     );
   }
+  
+  
+  
   
 
   deleteTrack(trackId: number): Observable<void> {
@@ -172,6 +271,9 @@ export class IndexedDbService {
         const track = await this.db.get('tracks', trackId);
         if (track?.audioFileId) {
           await this.db.delete('audioFiles', track.audioFileId); // Delete the associated audio file
+        }
+        if (track?.imageFileId) {
+          await this.db.delete('imageFiles', track.imageFileId); // Delete the associated image file
         }
         await this.db.delete('tracks', trackId); // Delete the track
       })()
@@ -204,32 +306,6 @@ export class IndexedDbService {
   }
   
 
-  async addTrackWithAudioFile(
-    track: MusicStreamDB['tracks']['value'],
-    file: Blob,
-    fileName: string,
-    fileType: string,
-    fileSize: number
-  ): Promise<number | null> {
-    await this.ensureDBInitialized();
-    try {
-      // Add track without audioFileId initially
-      const trackId = await this.db.add('tracks', { ...track, createdAt: new Date() });
-
-      // Add audio file and associate it with the track
-      const audioFileId = await this.addAudioFile({ fileBlob: file, fileName, fileType, fileSize }).toPromise();
-      if (audioFileId) {
-        const audioFile = await this.db.get('audioFiles', audioFileId);
-        if (audioFile) {
-          await this.db.put('audioFiles', { ...audioFile, trackId });
-        }
-      }
-      return trackId;
-    } catch (error) {
-      console.error('Error adding track with audio file:', error);
-      return null;
-    }
-  }
 
   // Navigation Helpers
   getNextTrack(currentTrackId: number): Observable<Track | null> {
@@ -249,4 +325,5 @@ export class IndexedDbService {
       })
     );
   }
+  
 }

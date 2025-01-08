@@ -39,6 +39,17 @@ class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 
     <form class="p-4 md:p-5" (ngSubmit)="addTrack()">
       <div class="grid gap-4 mb-4 grid-cols-2">
         <div class="col-span-2">
+          <label for="image-file" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Album Art</label>
+          <input
+            type="file"
+            id="image-file"
+            (change)="onImageFileChange($event)"
+            class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400"
+            accept="image/*"
+          />
+        </div>
+        
+        <div class="col-span-2">
           <label
             for="title"
             class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
@@ -130,6 +141,18 @@ class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 
   <div class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
     <h3 class="text-2xl font-semibold mb-6 text-teal-600">Edit Track</h3>
     <form (ngSubmit)="editTrack(selectedTrack)">
+      <div class="col-span-2">
+        <label for="image-file" class="block mb-2 text-sm font-medium text-teal-600">Album Art</label>
+        <input
+          type="file"
+          id="image-file"
+          (change)="onImageFileChange($event)"
+          class="mt-2 block w-full text-sm border border-gray-300 rounded-lg focus:outline-none"
+          accept="image/*"
+        />
+      
+      </div>
+      
       <div class="mb-5">
         <label for="edit-title" class="block text-sm font-medium text-teal-600">Title</label>
         <input
@@ -289,7 +312,10 @@ class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 
         <div class="flex-1 p-4 space-y-2" *ngIf="(filteredTracks$ | async) as filteredTracks;   ">
           <div *ngFor="let track of filteredTracks" class="flex items-center justify-between bg-teal-800 p-3 rounded-lg hover:bg-teal-900 group transition-colors">
             <div *ngIf="selectedTrack?.id !== track.id" class="flex items-center gap-3">
-              <div class="w-8 h-8 bg-teal-400/20 rounded-lg"></div>
+              <div class="w-8 h-8 bg-teal-400/20 rounded-lg">
+                <img *ngIf="imageUrls[track.id!]" [src]="imageUrls[track.id!]" alt="Track Image" />
+              </div>
+              
               <div>
                 <div class="font-medium">{{ track.title }} | {{ track.category }}</div>
                 <div class="text-sm text-gray-400">{{ track.artist }}</div>
@@ -308,11 +334,6 @@ class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 
               </button>
             </div>
           </div>        
-<!-- <ng-template #noTracks>
-              <p class="text-teal-400 text-center">
-                No tracks available. Add a track to get started!
-              </p>
-            </ng-template>    -->
         </div>
 
     </div>

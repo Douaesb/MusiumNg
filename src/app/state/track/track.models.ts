@@ -7,4 +7,6 @@ export interface Track {
   category: string; 
   createdAt: Date; 
   audioFileId?: number;
+  imageFileId?: number;
+  imageUrl?: string;
 }
