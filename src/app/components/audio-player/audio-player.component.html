@@ -1,9 +1,11 @@
 <!-- Player Controls -->
-<div class="fixed bottom-0 left-0 right-0 p-4">
+<div class="fixed bottom-0 left-0 right-0 p-4 bg-opacity-90 backdrop-blur-md transition-all duration-300 ease-in-out mb-9">
     <div *ngIf="selectedTrack$ | async as track; else loading" class="max-w-screen-xl mx-auto flex flex-col gap-4">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="w-12 h-12 bg-teal-400/20 rounded-lg"></div>
+                <div class="w-12 h-12 bg-teal-400/20 rounded-lg">
+                    <img *ngIf="imageUrls[track.imageFileId!]" [src]="imageUrls[track.imageFileId!]" alt="{{ track.title }} cover" class="track-image">
+                </div>
                 <div>
                     <div class="font-medium text-white">{{ track.title }}</div>
                     <div class="text-sm text-gray-400"> {{ track.artist }} | {{ track.category }}</div>
@@ -14,42 +16,70 @@
                     <source [src]="audioFileUrl" type="audio/mpeg">
                     Your browser does not support the audio element.
                 </audio>   
-                <button (click)="previousTrack()" class="p-2 hover:bg-teal-400 rounded-lg transition-colors">
+                <button (click)="previousTrack()" class="p-2 hover:bg-teal-400 rounded-lg transition-all duration-300 ease-in-out transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-opacity-50">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="white">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
                     </svg>
                 </button>
-                <button (click)="playPause()" class="p-2 bg-teal-400 hover:bg-teal-500 rounded-full transition-colors">
+                <button (click)="playPause()" class="p-2 bg-teal-400 hover:bg-teal-500 rounded-full transition-all duration-300 ease-in-out transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-opacity-50">
                     <svg *ngIf="!isPlaying" class="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.6582 9.28638C18.098 10.1862 18.8178 10.6361 19.0647 11.2122C19.2803 11.7152 19.2803 12.2847 19.0647 12.7878C18.8178 13.3638 18.098 13.8137 16.6582 14.7136L9.896 18.94C8.29805 19.9387 7.49907 20.4381 6.83973 20.385C6.26501 20.3388 5.73818 20.0469 5.3944 19.584C5 19.053 5 18.1108 5 16.2264V7.77357C5 5.88919 5 4.94701 5.3944 4.41598C5.73818 3.9531 6.26501 3.66111 6.83973 3.6149C7.49907 3.5619 8.29805 4.06126 9.896 5.05998L16.6582 9.28638Z" stroke="#000000" stroke-width="2" stroke-linejoin="round"></path></svg>
                     <svg *ngIf="isPlaying" class="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 5V19M16 5V19" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                 </button>
-                <button (click)="nextTrack()" class="p-2 hover:bg-teal-400 rounded-lg transition-colors">
+                <button (click)="nextTrack()" class="p-2 hover:bg-teal-400 rounded-lg transition-all duration-300 ease-in-out transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-opacity-50">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="white">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
                     </svg>
                 </button>
             </div>
-            <div class="hidden md:flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="white">
+            <div class="hidden md:flex items-center gap-2 group">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white transition-transform duration-300 ease-in-out group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                 </svg>
-                <input type="range" id="volume" class="w-32" [min]="0" [max]="1" [step]="0.1" [value]="volume" (input)="onVolumeChange($event)">
+                <div class="relative w-32 h-2 bg-teal-700 rounded-full overflow-hidden group-hover:h-3 transition-all duration-300 ease-in-out">
+                    <input 
+                        type="range" 
+                        id="volume" 
+                        class="absolute w-full h-full opacity-0 cursor-pointer z-10"
+                        [min]="0" 
+                        [max]="1" 
+                        [step]="0.01" 
+                        [value]="volume" 
+                        (input)="onVolumeChange($event)"
+                    >
+                    <div 
+                        class="absolute top-0 left-0 h-full bg-teal-400 rounded-full transition-all duration-300 ease-in-out"
+                        [style.width.%]="volume * 100"
+                    ></div>
+                </div>
             </div>
         </div>
-        <div class="flex justify-between gap-4">
-            <input 
-                type="range" 
-                class="w-full" 
-                [min]="0" 
-                [max]="duration" 
-                [value]="currentTime" 
-                (input)="onSeek($event)"
-            >
-            <span class="w-20 text-white">{{ formatTime(currentTime) }} / {{ formatTime(duration) }}</span>
+        <div class="flex items-center justify-between gap-4">
+            <div class="relative w-full h-2 bg-teal-700 rounded-full overflow-hidden group hover:h-3 transition-all duration-300 ease-in-out">
+                <input 
+                    type="range" 
+                    class="absolute w-full h-full opacity-0 cursor-pointer z-10"
+                    [min]="0" 
+                    [max]="duration" 
+                    [value]="currentTime" 
+                    (input)="onSeek($event)"
+                >
+                <div 
+                    class="absolute top-0 left-0 h-full bg-teal-400 rounded-full transition-all duration-300 ease-in-out"
+                    [style.width.%]="(currentTime / duration) * 100"
+                ></div>
+                <div 
+                    class="absolute top-0 left-0 h-full bg-white opacity-20 rounded-full transition-all duration-300 ease-in-out group-hover:opacity-40"
+                    [style.width.%]="(bufferPercentage)"
+                ></div>
+            </div>
+            <span class="w-24 text-sm text-white font-medium transition-all duration-300 ease-in-out hover:text-teal-400">
+                {{ formatTime(currentTime) }} / {{ formatTime(duration) }}
+            </span>
         </div>
     </div>
 </div>
 <ng-template #loading>
-    <p>Loading track details...</p>
+    <div class="fixed bottom-0 left-0 right-0 p-4 bg-gray-900 bg-opacity-90 backdrop-blur-md flex justify-center items-center">
+        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-teal-400"></div>
+    </div>
 </ng-template>
-

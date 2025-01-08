@@ -18,7 +18,7 @@ import { CommonModule } from '@angular/common';
 })
 export class AudioPlayerComponent implements OnInit, OnDestroy, OnChanges {
   selectedTrack$: Observable<Track | null>;
-  
+  imageUrls: { [trackId: number]: string } = {}; 
   @Input() track: Track | null = null;
   @ViewChild('audioPlayer') audioPlayerRef!: ElementRef<HTMLAudioElement>;
 
@@ -27,6 +27,7 @@ export class AudioPlayerComponent implements OnInit, OnDestroy, OnChanges {
   volume: number = 1;
   currentTime: number = 0;
   duration: number = 0;
+  bufferPercentage: number = 0;
   private subscriptions: Subscription = new Subscription();
 
   constructor(
@@ -52,6 +53,7 @@ export class AudioPlayerComponent implements OnInit, OnDestroy, OnChanges {
                 this.store.dispatch(TrackActions.selectTrack({ track }));
                 this.store.dispatch(AudioActions.selectTrack({ track }));
                 this.loadAudio(track.audioFileId!);
+                this.fetchImageUrl(track.imageFileId!);
               } else {
                 console.log('Track not found in IndexedDB');
                 this.store.dispatch(TrackActions.selectTrack({ track: null }));
@@ -78,6 +80,7 @@ export class AudioPlayerComponent implements OnInit, OnDestroy, OnChanges {
     if (changes['track'] && this.track) {
       console.log('Track changed in AudioPlayerComponent:', this.track);
       this.loadAndPlayTrack(this.track);
+      this.fetchImageUrl(this.track.imageFileId!);
     }
   }
 
@@ -101,10 +104,32 @@ export class AudioPlayerComponent implements OnInit, OnDestroy, OnChanges {
     });
   }
 
+  private fetchImageUrl(imageFileId: number): void {
+    if (imageFileId) {
+      this.indexedDbService.getImageFileUrl(imageFileId).subscribe({
+        next: (url) => {
+          this.imageUrls[imageFileId] = url;  // Store the image URL for the track
+          console.log('Image URL fetched for track:', url);
+        },
+        error: (err) => {
+          console.error('Error fetching image file URL:', err);
+        },
+      });
+    }
+  }
+
   onTimeUpdate(): void {
     const audioElement = this.audioPlayerRef.nativeElement;
     this.currentTime = audioElement.currentTime;
+    this.updateBufferPercentage();
     this.cdr.detectChanges();
+  }
+
+  updateBufferPercentage(): void {
+    const audioElement = this.audioPlayerRef.nativeElement;
+    if (audioElement.buffered.length > 0) {
+      this.bufferPercentage = (audioElement.buffered.end(audioElement.buffered.length - 1) / audioElement.duration) * 100;
+    }
   }
 
   onAudioLoaded(): void {
@@ -141,8 +166,9 @@ export class AudioPlayerComponent implements OnInit, OnDestroy, OnChanges {
   onSeek(event: Event): void {
     const audioElement = this.audioPlayerRef.nativeElement;
     const target = event.target as HTMLInputElement;
-    audioElement.currentTime = Number(target.value);
-    this.currentTime = audioElement.currentTime;
+    const seekTime = Number(target.value);
+    audioElement.currentTime = seekTime;
+    this.currentTime = seekTime;
     this.cdr.detectChanges();
   }
 
@@ -158,7 +184,7 @@ export class AudioPlayerComponent implements OnInit, OnDestroy, OnChanges {
   formatTime(time: number): string {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
 
   private saveState(): void {
@@ -225,6 +251,7 @@ export class AudioPlayerComponent implements OnInit, OnDestroy, OnChanges {
     this.track = track;
     this.isPlaying = false; 
     this.currentTime = 0; 
+    this.bufferPercentage = 0; 
     
     setTimeout(() => {
       const audioElement = this.audioPlayerRef.nativeElement;
