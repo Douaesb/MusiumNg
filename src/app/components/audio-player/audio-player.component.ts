@@ -246,7 +246,7 @@ export class AudioPlayerComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
-  private loadAndPlayTrack(track: Track): void {
+   loadAndPlayTrack(track: Track): void {
     this.loadAudio(track.audioFileId!);
     this.track = track;
     this.isPlaying = false; 
