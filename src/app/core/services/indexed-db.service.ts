@@ -155,11 +155,14 @@ export class IndexedDbService {
     return from(
       (async () => {
         await this.ensureDBInitialized();
-        if (track.description && track.description.length > 200) {
-          throw new Error('Description exceeds 200 characters');
-        }
+        this.validateTrack(track);
         return this.db.add('tracks', { ...track, createdAt: new Date() });
       })()
+    ).pipe(
+      catchError((error) => {
+        console.error('Error adding track:', error);
+        throw error;
+      })
     );
   }
   
@@ -173,6 +176,7 @@ export class IndexedDbService {
     return from(
       (async () => {
         await this.ensureDBInitialized();
+        this.validateTrack(track);
         console.log('Database initialized.');
   
         // Validate track description
@@ -259,10 +263,6 @@ export class IndexedDbService {
       })
     );
   }
-  
-  
-  
-  
 
   deleteTrack(trackId: number): Observable<void> {
     return from(
@@ -305,8 +305,6 @@ export class IndexedDbService {
     );
   }
   
-
-
   // Navigation Helpers
   getNextTrack(currentTrackId: number): Observable<Track | null> {
     return this.getAllTracks().pipe(
@@ -325,5 +323,22 @@ export class IndexedDbService {
       })
     );
   }
+
+  private validateTrack(track: MusicStreamDB['tracks']['value']): void {
+    if (!track.title || track.title.trim().length === 0) {
+      throw new Error('Track title is required.');
+    }
+    if (!track.artist || track.artist.trim().length === 0) {
+      throw new Error('Track artist is required.');
+    }
+    const validCategories = ['Pop', 'Rock', 'Jazz', 'Classical', 'Chaabi']; 
+    if (!validCategories.includes(track.category)) {
+      throw new Error(`Invalid category. Allowed categories are: ${validCategories.join(', ')}`);
+    }
+    if (track.description && track.description.length > 200) {
+      throw new Error('Description exceeds 200 characters.');
+    }
+  }
+  
   
 }

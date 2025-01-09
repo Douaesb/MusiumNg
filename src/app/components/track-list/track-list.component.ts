@@ -8,12 +8,13 @@ import { IndexedDbService } from '../../core/services/indexed-db.service';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { FormatDatePipe } from '../../format-date.pipe';
 
 @Component({
   selector: 'app-track-list',
   standalone: true,
   templateUrl: './track-list.component.html',
-  imports: [FormsModule, CommonModule],
+  imports: [FormsModule, CommonModule, FormatDatePipe],
 })
 export class TrackListComponent implements OnInit {
   @ViewChild('crudModal') crudModal!: ElementRef;
@@ -113,20 +114,31 @@ export class TrackListComponent implements OnInit {
       },
     });
   }
-
   onAudioFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input?.files?.length) {
       const file = input.files[0];
-      const fileBlob = file;
-      const fileName = file.name;
-      const fileType = file.type;
-      const fileSize = file.size;
-
-      this.audioFile = { fileBlob, fileName, fileType, fileSize };
-      this.audioFileUrl = URL.createObjectURL(fileBlob);
+      if (this.isAudioFileValid({ fileType: file.type, fileSize: file.size })) {
+        this.audioFile = {
+          fileBlob: file,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+        };
+        this.audioFileUrl = URL.createObjectURL(file);
+  
+        const audio = new Audio(this.audioFileUrl);
+        audio.onloadedmetadata = () => {
+          const duration = audio.duration; // Duration in seconds
+          this.newTrack.duration = duration; // Store duration in your track object
+          console.log('Audio Duration:', duration);
+        };
+      } else {
+        alert('Invalid audio file. Accepted formats: MP3, WAV, OGG. Max size: 15MB.');
+      }
     }
   }
+  
   addTrack(): void {
     console.log('New Track Data:', this.newTrack);
 
@@ -227,23 +239,67 @@ export class TrackListComponent implements OnInit {
     this.store.dispatch(TrackActions.deleteTrack({ trackId }));
   }
 
+  // onFileChange(event: Event): void {
+  //   const input = event.target as HTMLInputElement;
+  //   if (input?.files?.length) {
+  //     const file = input.files[0];
+  //     this.audioFile = {
+  //       fileBlob: file,
+  //       fileName: file.name,
+  //       fileType: file.type,
+  //       fileSize: file.size,
+  //     };
+
+  //     this.audioFileUrl = URL.createObjectURL(this.audioFile.fileBlob);
+  //     console.log('File uploaded successfully:', this.audioFileUrl);
+  //   } else {
+  //     console.warn('No file selected.');
+  //   }
+  // }
   onFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input?.files?.length) {
       const file = input.files[0];
-      this.audioFile = {
-        fileBlob: file,
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-      };
-
-      this.audioFileUrl = URL.createObjectURL(this.audioFile.fileBlob);
-      console.log('File uploaded successfully:', this.audioFileUrl);
-    } else {
-      console.warn('No file selected.');
-    }
+      
+        this.audioFile = {
+          fileBlob: file,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+        };
+  
+        this.audioFileUrl = URL.createObjectURL(this.audioFile.fileBlob);
+        console.log('File uploaded successfully:', this.audioFileUrl);
+  
+        const audio = new Audio(this.audioFileUrl);
+  
+        audio.onloadedmetadata = () => {
+          const duration = audio.duration; 
+          console.log('Audio Duration:', duration); 
+          
+          if (duration > 0) {
+            this.newTrack.duration = duration; 
+            console.log('Duration set to:', this.newTrack.duration);
+          } else {
+            console.error('Invalid audio duration:', duration);
+          }
+        };
+  
+        audio.onerror = (err) => {
+          console.error('Error loading audio file metadata:', err);
+        };
+      } else {
+        alert('Invalid audio file. Accepted formats: MP3, WAV, OGG. Max size: 15MB.');
+      }
+    
   }
+
+  formatTime(time: number): string {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
+  
   onImageFileChange(event: Event, isUpdate: boolean = false): void {
     const input = event.target as HTMLInputElement;
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
@@ -256,7 +312,7 @@ export class TrackListComponent implements OnInit {
         return;
       }
   
-      if (isUpdate) {
+      if (isUpdate &&this.isImageFileValid({ fileType: file.type, fileSize: file.size })) {
         // For updating
         this.newImageFile = {
           fileBlob: file,
@@ -265,7 +321,7 @@ export class TrackListComponent implements OnInit {
           fileSize: file.size,
         };
         console.log('Image file selected for update:', this.newImageFile);
-      } else {
+      } else if (this.isImageFileValid({ fileType: file.type, fileSize: file.size })) {
         // For adding a new image
         this.imageFile = {
           fileBlob: file,
@@ -287,10 +343,17 @@ export class TrackListComponent implements OnInit {
     console.log('Form has been reset.');
   }
 
+  // private isTrackValid(track: Track): boolean {
+  //   return !!(track.title && track.artist && track.category);
+  // }
   private isTrackValid(track: Track): boolean {
-    return !!(track.title && track.artist && track.category);
-  }
+    const titleValid = track.title && track.title.length <= 50;
+    const artistValid = track.artist && track.artist.length <= 50;
+    const categoryValid = this.categories.includes(track.category);
+    const descriptionValid = !track.description || track.description.length <= 200;
 
+    return !!(titleValid && artistValid && categoryValid && descriptionValid);
+  }
   private createEmptyTrack(): Track {
     return {
       id: 0,
@@ -315,5 +378,16 @@ export class TrackListComponent implements OnInit {
   }
   resetFilter(): void {
     this.filteredTracks$ = this.tracks$;
+  }
+  private isAudioFileValid(file: { fileType: string; fileSize: number }): boolean {
+    const allowedFormats = ['audio/mp3', 'audio/wav', 'audio/ogg'];
+    const maxSize = 15 * 1024 * 1024; // 15MB
+    return allowedFormats.includes(file.fileType) && file.fileSize <= maxSize;
+  }
+
+  private isImageFileValid(file: { fileType: string; fileSize: number }): boolean {
+    const allowedFormats = ['image/png', 'image/jpeg'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    return allowedFormats.includes(file.fileType) && file.fileSize <= maxSize;
   }
 }
