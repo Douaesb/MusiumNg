@@ -261,6 +261,8 @@ export class TrackListComponent implements OnInit {
     if (input?.files?.length) {
       const file = input.files[0];
       
+      // Validate the audio file
+      if (this.isAudioFileValid({ fileType: file.type, fileSize: file.size })) {
         this.audioFile = {
           fileBlob: file,
           fileName: file.name,
@@ -274,11 +276,11 @@ export class TrackListComponent implements OnInit {
         const audio = new Audio(this.audioFileUrl);
   
         audio.onloadedmetadata = () => {
-          const duration = audio.duration; 
-          console.log('Audio Duration:', duration); 
-          
+          const duration = audio.duration;
+          console.log('Audio Duration:', duration);
+  
           if (duration > 0) {
-            this.newTrack.duration = duration; 
+            this.newTrack.duration = duration;
             console.log('Duration set to:', this.newTrack.duration);
           } else {
             console.error('Invalid audio duration:', duration);
@@ -291,8 +293,11 @@ export class TrackListComponent implements OnInit {
       } else {
         alert('Invalid audio file. Accepted formats: MP3, WAV, OGG. Max size: 15MB.');
       }
-    
+    } else {
+      console.warn('No file selected.');
+    }
   }
+  
 
   formatTime(time: number): string {
     const minutes = Math.floor(time / 60);
@@ -379,12 +384,25 @@ export class TrackListComponent implements OnInit {
   resetFilter(): void {
     this.filteredTracks$ = this.tracks$;
   }
+  
   private isAudioFileValid(file: { fileType: string; fileSize: number }): boolean {
-    const allowedFormats = ['audio/mp3', 'audio/wav', 'audio/ogg'];
+    const allowedFormats = ['audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mpeg'];
+    console.log('File type:', file.fileType);
+    console.log('File size:', file.fileSize);
+  
     const maxSize = 15 * 1024 * 1024; // 15MB
-    return allowedFormats.includes(file.fileType) && file.fileSize <= maxSize;
+    console.log('Max size:', maxSize);
+  
+    // Compare file type in a case-insensitive manner
+    const isFormatValid = allowedFormats.includes(file.fileType.toLowerCase());
+    const isSizeValid = file.fileSize <= maxSize;
+  
+    console.log('Format valid:', isFormatValid);
+    console.log('Size valid:', isSizeValid);
+  
+    return isFormatValid && isSizeValid;
   }
-
+  
   private isImageFileValid(file: { fileType: string; fileSize: number }): boolean {
     const allowedFormats = ['image/png', 'image/jpeg'];
     const maxSize = 5 * 1024 * 1024; // 5MB
